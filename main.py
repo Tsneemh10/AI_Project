@@ -26,8 +26,7 @@ start = 0
 goal = 0
 placeNodes = True
 setNodesRelation = False
-draw_relations = False
-draw_mark_relations = False
+
 setGoal = False
 setStart = False
 displayResult = False
@@ -176,10 +175,24 @@ class ExampleApp(tk.Tk):
 
         global visited_nodes
         print (visited_nodes)
-        for node in visited_nodes:
-             self.rect = self.canvas.create_oval(node[0], node[1], node[0] +15,node[1] + 15, fill="Red")
-             time.sleep(1)
+        for i in range(nodes_no):
+             point= visited_nodes[i]
+             point1 = [ (point[0] + (point[0]+15))/2  , (point[1] + (point[1]+15))/2]
+             self.rect = self.canvas.create_oval(point[0], point[1], point[0] + 15, point[1] + 15, fill="Red")
+             time.sleep(0.5)
              self.canvas.update_idletasks()
+             max = len(visited_nodes)
+
+             if (i != max-1):
+                 point2_temp = visited_nodes[i + 1]
+                 point2 = [(point2_temp[0] + point2_temp[0] + 15) / 2, (point2_temp[1] + point2_temp[1] + 15) / 2]
+                 self.canvas.create_line(point1[0], point1[1], point2[0], point2[1], fill="red", width=2)
+                 time.sleep(0.5)
+                 self.canvas.update_idletasks()
+
+
+
+
 
 
 
