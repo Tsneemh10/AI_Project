@@ -16,6 +16,7 @@ EDGE_SIZE = 2
 NODE_LABEL_COLOR = "White"
 NODE_COLOR = "Red"
 NODE_MARK_COLOR = "Green"
+ANIMATION_DELAY = 0.5
 
 # Global variables
 i = 0
@@ -48,7 +49,7 @@ visited_nodes = []
 graph_type = ''
 
 selected_search_algorithm = ''
-search_algorithms = ('BFS', 'DFS', 'Depth Limited', 'Uniform Cost', 'Greedy', 'A*')
+search_algorithms = ('BFS', 'DFS', 'Iterative Deepening', 'Depth Limited', 'Uniform Cost', 'Greedy', 'A*')
 
 
 class Point:
@@ -56,6 +57,7 @@ class Point:
         self.pos = pos
         self.index = 0
         self.label = label
+        self.heuristic_weight = 0
 
 
 def stop_nodes():
@@ -81,12 +83,25 @@ class ExampleApp(tk.Tk):
         self.canvas.bind("<ButtonRelease-1>", self.on_button_release)
         ttk.Button(self, text="Lock nodes", command= stop_nodes ).pack()
 
-        self.entry = Entry(self, width=12)
-        self.entry.focus_set()
-        self.entry.pack()
-        ttk.Button(self, text="DFS", command=lambda: self.DFS(0)).pack()
-        tk.Button(self, text="Traverse graph", command=self.dfs_traversal).pack()
+        Label(self, text='Enter the start node').pack()
+
+        self.start_node = Entry(self, width=12)
+        self.start_node.focus_set()
+        self.start_node.pack()
+
+        Label(self, text='Enter the goal node').pack()
+
+        self.goal_node = Entry(self, width=12)
+        self.goal_node.focus_set()
+        self.goal_node.pack()
+
+        self.goal_node_index = 0
+
+        self.goal_coords = [0, 0]
+
+        tk.Button(self, text="Traverse graph", command=self.traverse_graph).pack()
         ttk.Button(self, text="Set Edge Weights", command=lambda: self.edge_weights_canvas()).pack()
+        ttk.Button(self, text="Set Node Heuristic", command=lambda: self.node_heuristic_canvas()).pack()
 
         Label(self, text='Select the desired graph type').pack()
 
@@ -126,7 +141,7 @@ class ExampleApp(tk.Tk):
             self.rect = self.canvas.create_oval(self.center[0], self.center[1], oval_lower[0],
                                                 oval_lower[1], fill="Black")
             self.rect = self.canvas.create_text(self.center[0], self.center[1] - 5, text=chr(ord("A") + i),
-                                                fill="Black")
+                                                fill="Blue", font=('Helvetica 15'))
 
             nodes.append(Point([event.x, event.y], chr(ord("A") + i)))
             i = i + 1
@@ -154,16 +169,38 @@ class ExampleApp(tk.Tk):
                     matrix[index1][index2] = 1
                     matrix[index2][index1] = 1
                 else:
-                    self.canvas.create_line(pos1[0], pos1[1], pos2[0], pos2[1], fill="black", width=2, arrow=tk.LAST, arrowshape=(25, 25, 10))
+                    self.canvas.create_line(pos1[0], pos1[1], pos2[0], pos2[1], fill="black", width=2, arrow=tk.LAST, arrowshape=(15, 15, 10))
                     click = 0
                     matrix[index1][index2] = 1
                     # matrix[index2][index1] = 1
 
-    def bfs(self):
-        global nodes_no, visited, dfs_counter, matrix, visited_nodes, nodes
-        for c in range(nodes_no):
-            if matrix[start][c] == 5:
-                visited_nodes.append(nodes[c].pos)
+    def bfs(self, start):
+        global nodes_no, visited, matrix, visited_nodes, nodes
+        visited = [False] * nodes_no
+        q = [start]
+
+        # Set source as visited
+        visited[start] = True
+        visited_nodes.append(nodes[start].pos)
+
+        while q:
+            vis = q[0]
+
+            # Print current node
+            print(vis, end=' ')
+            q.pop(0)
+
+            # For every adjacent vertex to
+            # the current vertex
+            for i in range(nodes_no):
+                if (matrix[vis][i] == 1 and
+                        (not visited[i])):
+                    # Push the adjacent node
+                    # in the queue
+                    q.append(i)
+                    visited_nodes.append(nodes[i].pos)
+                    # set
+                    visited[i] = True
 
 
     def DFS(self, start):
@@ -171,8 +208,6 @@ class ExampleApp(tk.Tk):
         global nodes_no, visited, dfs_counter, matrix, visited_nodes, nodes
 
         if dfs_counter == 0:
-            string = self.entry.get()
-            start = ord(string) - ord('@') - 1
             dfs_counter = 1
             visited_nodes.append(nodes[start].pos)
 
@@ -183,30 +218,54 @@ class ExampleApp(tk.Tk):
                 visited_nodes.append(nodes[i].pos)
                 self.DFS(i)
 
-    def dfs_traversal(self):
+    def traverse_graph(self):
 
-        global visited_nodes
-        print (visited_nodes)
+        global visited_nodes, selected_search_algorithm, start
+        print(visited_nodes)
+
+        if len(self.start_node.get()) != 0:
+            start = ord(self.start_node.get()) - ord('@') - 1
+            self.goal_node_index = ord(self.goal_node.get()) - ord('@') - 1
+            self.goal_coords = nodes[self.goal_node_index].pos
+
+        # search_algorithms_dict = {
+        #     "DFS": self.DFS(start=start),
+        #     "BFS": self.bfs(start=start),
+        # }
+
+        if selected_search_algorithm.get() == 'DFS':
+            self.DFS(start=start),
+
+        elif selected_search_algorithm.get() == 'BFS':
+            self.bfs(start=start),
+
+
         for i in range(nodes_no):
-             point = visited_nodes[i]
-             point1 = [ (point[0] + (point[0]+15))/2, (point[1] + (point[1]+15))/2]
-             self.rect = self.canvas.create_oval(point[0], point[1], point[0] + 15, point[1] + 15, fill="Red")
-             time.sleep(0.5)
-             self.canvas.update_idletasks()
-             max = len(visited_nodes)
+            point = visited_nodes[i]
 
-             if i != max-1:
-                 point2_temp = visited_nodes[i + 1]
-                 point2 = [(point2_temp[0] + point2_temp[0] + 15) / 2, (point2_temp[1] + point2_temp[1] + 15) / 2]
-                 self.canvas.create_line(point1[0], point1[1], point2[0], point2[1], fill="red", width=2)
-                 time.sleep(0.5)
-                 self.canvas.update_idletasks()
+            if point == self.goal_coords:
+                time.sleep(ANIMATION_DELAY)
+                self.rect = self.canvas.create_oval(point[0], point[1], point[0] + 15, point[1] + 15, fill="Green")
+                return
+
+            # point1 = [ (point[0] + (point[0]+15))/2, (point[1] + (point[1]+15))/2]
+            self.rect = self.canvas.create_oval(point[0], point[1], point[0] + 15, point[1] + 15, fill="Red")
+            time.sleep(ANIMATION_DELAY)
+            self.canvas.update_idletasks()
+            # max = len(visited_nodes)
+
+            # if i != max-1:
+            #     point2_temp = visited_nodes[i + 1]
+            #     point2 = [(point2_temp[0] + point2_temp[0] + 15) / 2, (point2_temp[1] + point2_temp[1] + 15) / 2]
+            #     self.canvas.create_line(point1[0], point1[1], point2[0], point2[1], fill="red", width=2)
+            #     time.sleep(0.5)
+            #     self.canvas.update_idletasks()
 
 
-             # if nodes:
-             #     for p, location in enumerate(nodes):
-             #         if (self.oval_upper[0]  >= nodes[p].oval_lower[0]   and self.oval_upper[1]  >= nodes[p].oval_lower[1] and
-             #             self.oval_upper[0] >= nodes[p].oval_lower[0] and self.oval_upper[1] >= nodes[p].oval_lower[1]  ) or (self.oval_lower)
+            # if nodes:
+            #     for p, location in enumerate(nodes):
+            #         if (self.oval_upper[0]  >= nodes[p].oval_lower[0]   and self.oval_upper[1]  >= nodes[p].oval_lower[1] and
+            #             self.oval_upper[0] >= nodes[p].oval_lower[0] and self.oval_upper[1] >= nodes[p].oval_lower[1]  ) or (self.oval_lower)
 
 
     def edge_weights_canvas(self):
@@ -259,6 +318,15 @@ class ExampleApp(tk.Tk):
 
         for j in matrix:
             print(j)
+
+    def node_heuristic_canvas(self):
+        window = tk.Toplevel()
+        canvas = tk.Canvas(window, height=200, width=200)
+        canvas.pack()
+
+        for j in nodes:
+            print(j.pos)
+            print(j.heuristic_weight)
 
     def on_button_release(self, event):
         pass
