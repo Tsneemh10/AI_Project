@@ -153,10 +153,11 @@ class ExampleApp(tk.Tk):
 
         global nodes_no, visited, dfs_counter, matrix, visited_nodes,nodes
 
-        if(dfs_counter==0):
+        if(dfs_counter == 0):
+
              string = self.entry.get()
              start = ord(string) - ord('@') - 1
-             dfs_counter=1
+             dfs_counter = 1
              visited_nodes.append(nodes[start].pos)
 
 
@@ -174,6 +175,7 @@ class ExampleApp(tk.Tk):
     def dfs_traversal (self):
 
         global visited_nodes
+        draw = False
         print (visited_nodes)
         for i in range(nodes_no):
              point= visited_nodes[i]
@@ -183,13 +185,17 @@ class ExampleApp(tk.Tk):
              self.canvas.update_idletasks()
              max = len(visited_nodes)
 
-             if (i != max-1):
-                 point2_temp = visited_nodes[i + 1]
-                 point2 = [(point2_temp[0] + point2_temp[0] + 15) / 2, (point2_temp[1] + point2_temp[1] + 15) / 2]
-                 self.canvas.create_line(point1[0], point1[1], point2[0], point2[1], fill="red", width=2)
-                 time.sleep(0.5)
-                 self.canvas.update_idletasks()
 
+
+             #
+             # if (i != max-1) and draw:
+             #
+             #     point2_temp = visited_nodes[i + 1]
+             #     point2 = [(point2_temp[0] + point2_temp[0] + 15) / 2, (point2_temp[1] + point2_temp[1] + 15) / 2]
+             #     self.canvas.create_line(point1[0], point1[1], point2[0], point2[1], fill="red", width=2)
+             #     time.sleep(0.5)
+             #     self.canvas.update_idletasks()
+             #
 
 
 
