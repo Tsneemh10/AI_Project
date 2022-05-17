@@ -4,6 +4,7 @@ from tkinter import *
 from tkinter import ttk
 # this is in python 3.4. For python 2.x import Tkinter
 from PIL import Image, ImageTk
+from queue import PriorityQueue
 
 draw_nodes = True
 
@@ -145,7 +146,7 @@ class ExampleApp(tk.Tk):
             self.rect = self.canvas.create_oval(self.center[0], self.center[1], oval_lower[0],
                                                 oval_lower[1], fill="Black")
             self.rect = self.canvas.create_text(self.center[0], self.center[1] - 5, text=chr(ord("A") + i),
-                                                fill="Blue", font=('Helvetica 15'))
+                                                fill="Blue", font='Helvetica 15')
 
             nodes.append(Point([event.x, event.y], chr(ord("A") + i)))
             i = i + 1
@@ -229,29 +230,29 @@ class ExampleApp(tk.Tk):
 
 
 
-        if (iteration_counter == 0):
+        if iteration_counter == 0:
             for i in range(nodes_no):
                 for j in range(nodes_no):
-                    temp_matrix[i][j]= 0
+                    temp_matrix[i][j] = 0
 
-        if (iteration_counter==0):
+        if iteration_counter==0:
             Iterations_vertices.append(start)
 
 
-        if (iteration_counter!=0):
+        if iteration_counter != 0:
 
 
-            if (iteration_counter==1):
+            if iteration_counter == 1:
                 for i in range(nodes_no):
-                    temp_matrix[start][i]= matrix[start][i]
-                    if  temp_matrix[start][i]==1:
+                    temp_matrix[start][i] = matrix[start][i]
+                    if temp_matrix[start][i] == 1:
                         Iterations_vertices.append(i)
 
             else:
                 for i in range(len(Iterations_vertices)):
                     for j in range(nodes_no):
-                        temp_matrix[Iterations_vertices[i]][j]= matrix[Iterations_vertices[i]][j]
-                        if(temp_matrix[Iterations_vertices[i]][j]==1):
+                        temp_matrix[Iterations_vertices[i]][j] = matrix[Iterations_vertices[i]][j]
+                        if temp_matrix[Iterations_vertices[i]][j] == 1:
                             Iterations_vertices.append(j)
 
 
@@ -290,7 +291,7 @@ class ExampleApp(tk.Tk):
 
         for i in range(nodes_no):
             if temp_matrix[start][i] == 1 and (visited[i] == False):
-                print (i)
+                print(i)
                 visited_nodes.append(nodes[i].pos)
                 self.Iterative_DFS(i)
 
@@ -324,24 +325,50 @@ class ExampleApp(tk.Tk):
             self.rect = self.canvas.create_oval(point[0], point[1], point[0] + 15, point[1] + 15, fill="Black")
 
         for i in range(nodes_no):
-            visited[i]= False
+            visited[i] = False
         visited_nodes.clear()
-        dfs_counter=0
+        dfs_counter = 0
 
+    def uniform_cost(self):
+        global visited_nodes
 
+        visited = set()
+        expanded = []
+        queue = PriorityQueue()
+        queue.put((0, self.start_node.get()))
 
+        while queue:
+            cost, node = queue.get()
+            current = node[-1]
+            print('current: ', current)
+            temp_row = ord(current) - ord('@') - 1
+            if current not in visited:
+                visited.add(current)
+                expanded.append(current)
+                visited_nodes.append(nodes[temp_row].pos)
 
+                if current == self.goal_node.get():
+                    print("goal reached: ", node, "expanded list: ", expanded)
+                    return node, expanded
+
+            length = len(matrix[temp_row])
+
+            for neighbor in range(length):
+                print("neighbor: ", neighbor, "visited: ", visited, "condition: ", neighbor not in visited)
+                if neighbor not in visited and matrix[temp_row][neighbor] >= 1:
+                    j = chr(neighbor + ord('A'))
+                    if j not in visited:
+                        total_cost = cost + matrix[temp_row][neighbor]
+                        queue.put((total_cost, node + j))
 
     def traverse_graph(self):
 
-        global visited_nodes, selected_search_algorithm, start , returnV
+        global visited_nodes, selected_search_algorithm, start, returnV
 
         if len(self.start_node.get()) != 0:
             start = ord(self.start_node.get()) - ord('@') - 1
             self.goal_node_index = ord(self.goal_node.get()) - ord('@') - 1
             self.goal_coords = nodes[self.goal_node_index].pos
-
-
 
         if selected_search_algorithm.get() == 'DFS':
             self.DFS(start=start),
@@ -351,22 +378,24 @@ class ExampleApp(tk.Tk):
         elif selected_search_algorithm.get() == 'Iterative Deepening':
             # if (returnV):
             self.Perform_steps(),
+        elif selected_search_algorithm.get() == 'Uniform Cost':
+            self.uniform_cost()
 
 
-        # print (visited_nodes)
-        # for i in range(len(visited_nodes)):
-        #     point = visited_nodes[i]
-        #
-        #     if point == self.goal_coords:
-        #         time.sleep(ANIMATION_DELAY)
-        #         self.rect = self.canvas.create_oval(point[0], point[1], point[0] + 15, point[1] + 15, fill="Green")
-        #         returnV = False
-        #         return
-        #
-        #     # point1 = [ (point[0] + (point[0]+15))/2, (point[1] + (point[1]+15))/2]
-        #     self.rect = self.canvas.create_oval(point[0], point[1], point[0] + 15, point[1] + 15, fill="Red")
-        #     time.sleep(ANIMATION_DELAY)
-        #     self.canvas.update_idletasks()
+        print (visited_nodes)
+        for i in range(len(visited_nodes)):
+            point = visited_nodes[i]
+
+            if point == self.goal_coords:
+                time.sleep(ANIMATION_DELAY)
+                self.rect = self.canvas.create_oval(point[0], point[1], point[0] + 15, point[1] + 15, fill="Green")
+                returnV = False
+                return
+
+            # point1 = [ (point[0] + (point[0]+15))/2, (point[1] + (point[1]+15))/2]
+            self.rect = self.canvas.create_oval(point[0], point[1], point[0] + 15, point[1] + 15, fill="Red")
+            time.sleep(ANIMATION_DELAY)
+            self.canvas.update_idletasks()
 
 
             # max = len(visited_nodes)
@@ -427,9 +456,20 @@ class ExampleApp(tk.Tk):
         for j in matrix:
             print(j)
 
+        if weight <= 0:
+            print("Weight needs to be a positive number")
+            return
+
         if graph_type.get() == "Undirected":
             matrix[start][end] = weight
             matrix[end][start] = weight
+
+            pos_1 = nodes[start].pos
+            pos_2 = nodes[end].pos
+            point = ((pos_1[0] + pos_2[0]) / 2, (pos_1[1] + pos_2[1]) / 2)
+            self.canvas.create_text(point[0], point[1] - 5, text=weight,
+                                    fill="Blue", font='Helvetica 15')
+
         else:
             matrix[start][end] = weight
 
@@ -441,9 +481,30 @@ class ExampleApp(tk.Tk):
         canvas = tk.Canvas(window, height=200, width=200)
         canvas.pack()
 
+        node_names = []
+
         for j in nodes:
-            print(j.pos)
-            print(j.heuristic_weight)
+            node_names.append(j.label)
+
+        node = StringVar()
+        node.set(node_names[0])
+
+        OptionMenu(canvas, node, *node_names).pack()
+        Label(canvas, text='Input the desired Heuristic Weight').pack()
+        heuristic_weight = Text(canvas, width=10, height=10)
+        heuristic_weight.pack()
+        ttk.Button(canvas, text="Submit", command=lambda: self.set_node_heuristic_weight(node=node.get(), heuristic_weight=int(heuristic_weight.get("1.0", "end-1c")))).pack()
+
+    def set_node_heuristic_weight(self, node, heuristic_weight):
+        global nodes
+
+        temp = ord(node) - ord('A')
+
+        nodes[temp].heuristic_weight = heuristic_weight
+
+        for j in nodes:
+            print(j.label, ' ', j.heuristic_weight)
+
 
     def on_button_release(self, event):
         pass
