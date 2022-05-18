@@ -1,7 +1,7 @@
 import time
 import tkinter as tk
 from tkinter import *
-from tkinter import ttk
+from tkinter import ttk, messagebox
 # this is in python 3.4. For python 2.x import Tkinter
 from PIL import Image, ImageTk
 from queue import PriorityQueue
@@ -47,9 +47,9 @@ visited = []
 
 dfs_counter = 0
 visited_nodes = []
-Iterations_vertices=[]
+Iterations_vertices = []
 graph_type = ''
-iteration_counter=0
+iteration_counter = 0
 returnV = True
 selected_search_algorithm = ''
 search_algorithms = ('BFS', 'DFS', 'Iterative Deepening', 'Depth Limited', 'Uniform Cost', 'Greedy', 'A*')
@@ -81,50 +81,66 @@ class ExampleApp(tk.Tk):
 
         tk.Tk.__init__(self)
         self.x = self.y = 0
-        self.canvas = tk.Canvas(self, width=512, height=512, cursor="cross")
-        self.canvas.pack(side="top", fill="both", expand=True)
+        self.title("AI search algorithms")
+
+        main_frame = Frame(self)
+
+        frame_2 = Frame(main_frame)
+        frame_2.grid(row=0, column=1)
+
+        self.canvas = tk.Canvas(main_frame, width=800, height=600, cursor="cross", relief="groove", borderwidth=5)
+        # self.canvas.pack(side="top", fill="both", expand=True)
+
         self.canvas.bind("<ButtonPress-1>", self.on_button_press)
-
         self.canvas.bind("<ButtonRelease-1>", self.on_button_release)
-        ttk.Button(self, text="Lock nodes", command= stop_nodes ).pack()
+        self.canvas.grid(row=0, column=0)
 
-        Label(self, text='Enter the start node').pack()
+        ttk.Button(frame_2, text="Lock nodes", command=stop_nodes).grid(row=0, column=0)
 
-        self.start_node = Entry(self, width=12)
+        Label(frame_2, text=' ').grid(row=1, column=0)  # spacer_1
+
+        Label(frame_2, text='Enter the start node').grid(row=2, column=0)
+
+        self.start_node = Entry(frame_2, width=12)
         self.start_node.focus_set()
-        self.start_node.pack()
+        self.start_node.grid(row=2, column=1)
 
-        Label(self, text='Enter the goal node').pack()
+        Label(frame_2, text='Enter the goal node').grid(row=3, column=0)
 
-        self.goal_node = Entry(self, width=12)
+        self.goal_node = Entry(frame_2, width=12)
         self.goal_node.focus_set()
-        self.goal_node.pack()
+        self.goal_node.grid(row=3, column=1)
+
+        Label(frame_2, text=' ').grid(row=4, column=0)  # spacer_2
 
         self.goal_node_index = 0
 
         self.goal_coords = [0, 0]
 
-        tk.Button(self, text="Traverse graph", command=self.traverse_graph).pack()
-        ttk.Button(self, text="Set Edge Weights", command=lambda: self.edge_weights_canvas()).pack()
-        ttk.Button(self, text="Set Node Heuristic", command=lambda: self.node_heuristic_canvas()).pack()
+        ttk.Button(frame_2, text="Set Edge Weights", command=lambda: self.edge_weights_canvas()).grid(row=5, column=0)
+        ttk.Button(frame_2, text="Set Node Heuristic", command=lambda: self.node_heuristic_canvas()).grid(row=5, column=1)
 
-        Label(self, text='Select the desired graph type').pack()
+        Label(frame_2, text='Select the desired graph type').grid(row=6, column=0)
 
         graph_type = StringVar()
         graph_type.set("Undirected")
 
-        tk.Radiobutton(self, text="Undirected", variable=graph_type, value="Undirected").pack()
-        tk.Radiobutton(self, text="Directed", variable=graph_type, value="Directed").pack()
+        tk.Radiobutton(frame_2, text="Undirected", variable=graph_type, value="Undirected").grid(row=7, column=0)
+        tk.Radiobutton(frame_2, text="Directed", variable=graph_type, value="Directed").grid(row=8, column=0)
 
-        Label(self, text='Select the desired search algorithm').pack()
+        Label(frame_2, text='Select the desired search algorithm').grid(row=9, column=0)
 
         selected_search_algorithm = StringVar()
         selected_search_algorithm.set('BFS')
 
-        OptionMenu(self, selected_search_algorithm, *search_algorithms).pack()
+        OptionMenu(frame_2, selected_search_algorithm, *search_algorithms).grid(row=10, column=0)
+
+        tk.Button(frame_2, text="Traverse graph", command=self.traverse_graph).grid(row=11, column=0)
 
         self.rect = None
         self.center = [0, 0]
+
+        main_frame.pack()
 
     def on_button_press(self, event):
         global draw_nodes, i, nodes, pos1, pos2, click, index1, index2, nodes_no, matrix
@@ -228,19 +244,15 @@ class ExampleApp(tk.Tk):
 
         global nodes_no, visited, dfs_counter, matrix, visited_nodes, nodes, iteration_counter, temp_matrix, returnV, Iterations_vertices
 
-
-
         if iteration_counter == 0:
             for i in range(nodes_no):
                 for j in range(nodes_no):
                     temp_matrix[i][j] = 0
 
-        if iteration_counter==0:
+        if iteration_counter == 0:
             Iterations_vertices.append(start)
 
-
         if iteration_counter != 0:
-
 
             if iteration_counter == 1:
                 for i in range(nodes_no):
@@ -254,7 +266,6 @@ class ExampleApp(tk.Tk):
                         temp_matrix[Iterations_vertices[i]][j] = matrix[Iterations_vertices[i]][j]
                         if temp_matrix[Iterations_vertices[i]][j] == 1:
                             Iterations_vertices.append(j)
-
 
         iteration_counter += 1
         # self.Iterative_DFS(start)
@@ -297,8 +308,7 @@ class ExampleApp(tk.Tk):
 
         return True
 
-
-    def Perform_steps(self):
+    def perform_steps(self):
         global returnV, visited, dfs_counter
         self.Iterative_deepening_preparation(start=start)
         self.Iterative_DFS(start)
@@ -340,7 +350,6 @@ class ExampleApp(tk.Tk):
         while queue:
             cost, node = queue.get()
             current = node[-1]
-            print('current: ', current)
             temp_row = ord(current) - ord('@') - 1
             if current not in visited:
                 visited.add(current)
@@ -377,7 +386,7 @@ class ExampleApp(tk.Tk):
             self.bfs(start=start),
         elif selected_search_algorithm.get() == 'Iterative Deepening':
             # if (returnV):
-            self.Perform_steps(),
+            self.perform_steps(),
         elif selected_search_algorithm.get() == 'Uniform Cost':
             self.uniform_cost()
 
@@ -415,9 +424,6 @@ class ExampleApp(tk.Tk):
 
 
     def edge_weights_canvas(self):
-        window = tk.Toplevel()
-        canvas = tk.Canvas(window, height=200, width=200)
-        canvas.pack()
 
         offset = 0
         edges = []
@@ -438,6 +444,14 @@ class ExampleApp(tk.Tk):
                         end = chr(column + ord('A'))
                         edges.append(start + '-' + end)
 
+        if not edges:
+            messagebox.showwarning("Error", "Create some edges first")
+            return
+
+        window = tk.Toplevel()
+        canvas = tk.Canvas(window, height=200, width=200)
+        canvas.pack()
+
         edge = StringVar()
         edge.set(edges[0])
 
@@ -448,6 +462,10 @@ class ExampleApp(tk.Tk):
         ttk.Button(canvas, text="Submit", command=lambda: self.set_edge_weight(edge=edge.get(), weight=int(weight.get("1.0", "end-1c")))).pack()
 
     def set_edge_weight(self, edge, weight):
+        if weight <= 0:
+            messagebox.showwarning("Error", "Weight needs to be a positive number")
+            return
+
         temp = edge.split('-')
 
         start = ord(temp[0]) - ord('A')
@@ -456,27 +474,29 @@ class ExampleApp(tk.Tk):
         for j in matrix:
             print(j)
 
-        if weight <= 0:
-            print("Weight needs to be a positive number")
-            return
-
         if graph_type.get() == "Undirected":
             matrix[start][end] = weight
             matrix[end][start] = weight
 
-            pos_1 = nodes[start].pos
-            pos_2 = nodes[end].pos
-            point = ((pos_1[0] + pos_2[0]) / 2, (pos_1[1] + pos_2[1]) / 2)
-            self.canvas.create_text(point[0], point[1] - 5, text=weight,
-                                    fill="Blue", font='Helvetica 15')
-
         else:
             matrix[start][end] = weight
+
+        pos_1 = nodes[start].pos
+        pos_2 = nodes[end].pos
+        point = ((pos_1[0] + pos_2[0]) / 2, (pos_1[1] + pos_2[1]) / 2)
+        self.canvas.create_text(point[0], point[1] - 5, text=weight,
+                                fill="Blue", font='Helvetica 15')
 
         for j in matrix:
             print(j)
 
     def node_heuristic_canvas(self):
+        global nodes_no
+
+        if nodes_no == 0:
+            messagebox.showwarning("Error", "Create some nodes first")
+            return
+
         window = tk.Toplevel()
         canvas = tk.Canvas(window, height=200, width=200)
         canvas.pack()
