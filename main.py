@@ -363,11 +363,43 @@ class ExampleApp(tk.Tk):
             length = len(matrix[temp_row])
 
             for neighbor in range(length):
-                print("neighbor: ", neighbor, "visited: ", visited, "condition: ", neighbor not in visited)
-                if neighbor not in visited and matrix[temp_row][neighbor] >= 1:
+                if matrix[temp_row][neighbor] > 0:
                     j = chr(neighbor + ord('A'))
                     if j not in visited:
                         total_cost = cost + matrix[temp_row][neighbor]
+                        queue.put((total_cost, node + j))
+
+    def greedy(self):
+        global visited_nodes, nodes
+
+        visited = set()
+        expanded = []
+        queue = PriorityQueue()
+        queue.put((0, self.start_node.get()))
+
+        while queue:
+            cost, node = queue.get()
+            current = node[-1]
+            temp_row = ord(current) - ord('@') - 1
+            if current not in visited:
+                visited.add(current)
+                expanded.append(current)
+                visited_nodes.append(nodes[temp_row].pos)
+
+                if current == self.goal_node.get():
+                    print("goal reached: ", node, "expanded list: ", expanded)
+                    return node, expanded
+
+                length = len(matrix[temp_row])
+
+                for neighbor in range(length):
+                    if neighbor not in visited and matrix[temp_row][neighbor] > 0: #TODO review not in visited condition
+                        j = chr(neighbor + ord('A'))
+                        print(j in visited)
+                        temp_list = [x.heuristic_weight for x in nodes if x.label == j]
+                        print('temp_list: ', temp_list)
+                        print('expected:', temp_list[0], 'actual: ', nodes[neighbor].heuristic_weight)
+                        total_cost = nodes[neighbor].heuristic_weight
                         queue.put((total_cost, node + j))
 
     def traverse_graph(self):
@@ -389,6 +421,8 @@ class ExampleApp(tk.Tk):
             self.perform_steps(),
         elif selected_search_algorithm.get() == 'Uniform Cost':
             self.uniform_cost()
+        elif selected_search_algorithm.get() == 'Greedy':
+            self.greedy()
 
 
         print (visited_nodes)
@@ -521,6 +555,9 @@ class ExampleApp(tk.Tk):
         temp = ord(node) - ord('A')
 
         nodes[temp].heuristic_weight = heuristic_weight
+
+        self.canvas.create_text(nodes[temp].pos[0] + 30, nodes[temp].pos[1] - 10, text=heuristic_weight,
+                                fill="Blue", font='Helvetica 15')
 
         for j in nodes:
             print(j.label, ' ', j.heuristic_weight)
