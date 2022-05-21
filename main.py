@@ -57,13 +57,13 @@ flag_continue_dfs= True
 temp_expanded=[]
 temp_visited_nodes_indices=[]
 
+
 class Point:
     def __init__(self, pos, label):
         self.pos = pos
         self.index = 0
         self.label = label
         self.heuristic_weight = 0
-
 
 
 def stop_nodes():
@@ -77,14 +77,15 @@ def stop_nodes():
         visited = [False] * nodes_no
         draw_nodes_flag = False
 
-def convert(a):
-    adjList = defaultdict(list)
-    for i in range(len(a)):
-        for j in range(len(a[i])):
-            if a[i][j] == 1:
-                adjList[i].append(j)
-    return adjList
 
+def convert(matrix_1):
+    adjList = defaultdict(list)
+    for i in range(len(matrix_1)):
+        for j in range(len(matrix_1[i])):
+            if matrix_1[i][j] > 0:
+                tuple_1 = (chr(ord('A') + j), matrix[i][j])
+                adjList[chr(ord('A') + i)].append(tuple_1)
+    return adjList
 
 
 class ExampleApp(tk.Tk):
@@ -218,7 +219,7 @@ class ExampleApp(tk.Tk):
                     # matrix[index2][index1] = 1
 
     def reset_graph(self):
-        global draw_nodes, nodes, visited_nodes, nodes_no, i, index1, index2, draw_nodes_flag, dfs_counter , matrix,visited_nodes, temp_matrix, visited, flag_continue_dfs, Iterations_vertices, iteration_counter, temp_expanded, temp_visited_nodes_indices
+        global draw_nodes, nodes, visited_nodes, nodes_no, i, index1, index2, draw_nodes_flag, dfs_counter, matrix, visited_nodes, temp_matrix, visited, flag_continue_dfs, Iterations_vertices, iteration_counter, temp_expanded, temp_visited_nodes_indices
 
         self.canvas.delete('all')
 
@@ -232,14 +233,11 @@ class ExampleApp(tk.Tk):
         temp_matrix = [[0 for i in range(nodes_no)]
                        for j in range(nodes_no)]
         visited = [False] * nodes_no
-        flag_continue_dfs= True
+        flag_continue_dfs = True
         Iterations_vertices.clear()
-        iteration_counter=0
+        iteration_counter = 0
         temp_expanded.clear()
         temp_visited_nodes_indices.clear()
-
-
-
 
     def bfs(self, start, goal, path=[], expanded=[]):
 
@@ -276,29 +274,34 @@ class ExampleApp(tk.Tk):
                         appends = path + j[0]
                         queue.append(appends)
 
-    def BFS_Matrix(graph, start, goal, list):
+    def bfs_matrix(self):
+        global visited_nodes
         visited = set()
         expanded = []
-        queue = [start]
+        queue = [self.start_node.get()]
 
         while queue:
             path = queue.pop(0)
             current = path[-1]
 
+            temp_row = ord(current) - ord('@') - 1
+
             if current not in expanded:
                 expanded.append(path[-1])
+                visited_nodes.append(nodes[temp_row].pos)
 
             if current not in visited:
                 visited.add(current)
 
-            if current == goal:
+            if current == self.goal_node.get():
+                print('path: ', path, 'expanded: ', expanded)
                 return path, expanded
 
-            length = len(graph[maps[current]])
+            length = len(matrix[temp_row])
             for neighbor in range(length):
-                if neighbor not in visited and graph[maps[current]][neighbor] == 1:
-                    j = [k for k, v in maps.items() if v == neighbor]
-                    if j[0] not in visited:
+                if neighbor not in visited and matrix[temp_row][neighbor] == 1:
+                    j = chr(neighbor + ord('A'))
+                    if j not in visited:
                         appends = path + j[0]
                         queue.append(appends)
 
@@ -510,32 +513,34 @@ class ExampleApp(tk.Tk):
                         total_cost = nodes[neighbor].heuristic_weight
                         queue.put((total_cost, solution_path + j))
 
-    def astar(self):
+    def astar(self, graph, start, goal):
+        global nodes, visited_nodes
+
         visited = []
         path = []
         prev = {}
         queue = PriorityQueue()
-        queue.put((0, self.start_node.get(), None))
-        h2 = 0
+        queue.put((0, start, None))
 
         while queue:
             cost, node, prev_n = queue.get()
             if node not in visited:
                 visited.append(node)
+                visited_nodes.append(nodes[ord(node) - ord('@') - 1].pos)
                 prev[node] = prev_n
 
-                if node == self.goal_node.get():
-                    while prev[node] != None:
+                if node == goal:
+                    while prev[node] is not None:
                         path += [node]
                         node = prev[node]
                     path += [start]
-                    return visited, prev, path[::-1]
-                for k, c in matrix[node]:
-                    if k not in visited:
+                    return path[::-1], visited
+                for i, c in graph[node]:
+                    if i not in visited:
                         total_cost = cost + c
-                        h1 = heuristic[k]
-                        total = total_cost + h1 - heuristic[node]
-                        queue.put((total, k, node))
+                        h1 = nodes[ord(i) - ord('@') - 1].heuristic_weight
+                        total = total_cost + h1 - nodes[ord(node) - ord('@') - 1].heuristic_weight
+                        queue.put((total, i, node))
 
     def traverse_graph(self):
 
@@ -554,7 +559,7 @@ class ExampleApp(tk.Tk):
             solution_path, expanded = self.dfs_matrix(start=start, goal=self.goal_node_index, path=[], expanded=[])
 
         elif selected_search_algorithm.get() == 'BFS':
-            solution_path, expanded = self.bfs(start=start, goal=self.goal_node_index, path=[] ,expanded = [])
+            solution_path, expanded = self.bfs_matrix()
         elif selected_search_algorithm.get() == 'Iterative Deepening':
             # if (returnV):
             self.perform_steps()
@@ -573,16 +578,16 @@ class ExampleApp(tk.Tk):
             solution_path, expanded = self.greedy()
         elif selected_search_algorithm.get() == 'A*':
             AdjList = convert(matrix)
+            solution_path, expanded = self.astar(graph=AdjList, start=self.start_node.get(), goal=self.goal_node.get())
             print("Adjacency List:")
-            # print the adjacency list
-            for i in AdjList:
-                print(i, end="")
-                for j in AdjList[i]:
-                    print(" -> {}".format(j), end="")
-                print()
-
-            solution_path, expanded = self.astar(start=start, goal=self.goal_node_index, AdjList= AdjList)
-
+            # for i in AdjList:
+            #     print(i, end="")
+            #     for j in AdjList[i]:
+            #         print(" -> {}".format(j), end="")
+            #     print()
+            for j in AdjList:
+                for k in AdjList[j]:
+                    print(j, k)
 
         for i in range(len(visited_nodes)):
             point = visited_nodes[i]
