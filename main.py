@@ -4,7 +4,7 @@ from tkinter import *
 from tkinter import ttk, messagebox
 # this is in python 3.4. For python 2.x import Tkinter
 from queue import PriorityQueue
-
+from collections import defaultdict
 draw_nodes = True
 draw_nodes_flag = True
 
@@ -53,7 +53,9 @@ iteration_counter = 0
 returnV = True
 selected_search_algorithm = ''
 search_algorithms = ('BFS', 'DFS', 'Iterative Deepening', 'Uniform Cost', 'Greedy', 'A*')
-
+flag_continue_dfs= True
+temp_expanded=[]
+temp_visited_nodes_indices=[]
 
 class Point:
     def __init__(self, pos, label):
@@ -63,8 +65,9 @@ class Point:
         self.heuristic_weight = 0
 
 
+
 def stop_nodes():
-    global draw_nodes, matrix, nodes_no, visited, temp_matrix, draw_nodes_flag
+    global draw_nodes, matrix, nodes_no, visited, temp_matrix, draw_nodes_flag, dfs_counter
     draw_nodes = False
     if draw_nodes_flag:
         matrix = [[0 for i in range(nodes_no)]
@@ -73,6 +76,15 @@ def stop_nodes():
                   for j in range(nodes_no)]
         visited = [False] * nodes_no
         draw_nodes_flag = False
+
+def convert(a):
+    adjList = defaultdict(list)
+    for i in range(len(a)):
+        for j in range(len(a[i])):
+            if a[i][j] == 1:
+                adjList[i].append(j)
+    return adjList
+
 
 
 class ExampleApp(tk.Tk):
@@ -206,7 +218,7 @@ class ExampleApp(tk.Tk):
                     # matrix[index2][index1] = 1
 
     def reset_graph(self):
-        global draw_nodes, nodes, visited_nodes, nodes_no, i, index1, index2, draw_nodes_flag
+        global draw_nodes, nodes, visited_nodes, nodes_no, i, index1, index2, draw_nodes_flag, dfs_counter , matrix,visited_nodes, temp_matrix, visited, flag_continue_dfs, Iterations_vertices, iteration_counter, temp_expanded, temp_visited_nodes_indices
 
         self.canvas.delete('all')
 
@@ -214,39 +226,81 @@ class ExampleApp(tk.Tk):
         nodes_no = i = index1 = index2 = 0
         nodes.clear()
         visited_nodes.clear()
-
-    def bfs(self, start):
-
-        global nodes_no, visited, matrix, visited_nodes, nodes
+        dfs_counter = 0
+        matrix = [[0 for i in range(nodes_no)]
+                  for j in range(nodes_no)]
+        temp_matrix = [[0 for i in range(nodes_no)]
+                       for j in range(nodes_no)]
         visited = [False] * nodes_no
-        q = [start]
-        expanded = []
+        flag_continue_dfs= True
+        Iterations_vertices.clear()
+        iteration_counter=0
+        temp_expanded.clear()
+        temp_visited_nodes_indices.clear()
+
+
+
+
+    def bfs(self, start, goal, path=[], expanded=[]):
+
+        global nodes_no, matrix, visited_nodes, nodes
+        queue = [start]
+
 
         # Set source as visited
         visited[start] = True
         visited_nodes.append(nodes[start].pos)
         expanded.append(nodes[start].label)
 
-        while q:
-            vis = q[0]
+        while queue:
+
+            path.append (queue.pop(0))
+            current = path[-1]
+            if current not in expanded:
+                expanded.append(path[-1])
+            if current not in visited:
+                visited.add(current)
+            if current == goal:
+                return path, expanded
 
             # Print current node
-            print(vis, end=' ')
-            q.pop(0)
+           # print(vis, end=' ')
 
             # For every adjacent vertex to
             # the current vertex
-            for i in range(nodes_no):
-                if (matrix[vis][i] == 1 and
-                        (not visited[i])):
-                    # Push the adjacent node
-                    # in the queue
-                    q.append(i)
-                    visited_nodes.append(nodes[i].pos)
-                    expanded.append(nodes[i].label)
-                    # set
-                    visited[i] = True
-        return 'A', expanded  # TODO wrong output
+            length = len(matrix[current])
+            for neighbor in range(length):
+                if neighbor not in visited and matrix[current][neighbor] == 1:
+                    j = [k for k, v in nodes if v == neighbor]
+                    if j[0] not in visited:
+                        appends = path + j[0]
+                        queue.append(appends)
+
+    def BFS_Matrix(graph, start, goal, list):
+        visited = set()
+        expanded = []
+        queue = [start]
+
+        while queue:
+            path = queue.pop(0)
+            current = path[-1]
+
+            if current not in expanded:
+                expanded.append(path[-1])
+
+            if current not in visited:
+                visited.add(current)
+
+            if current == goal:
+                return path, expanded
+
+            length = len(graph[maps[current]])
+            for neighbor in range(length):
+                if neighbor not in visited and graph[maps[current]][neighbor] == 1:
+                    j = [k for k, v in maps.items() if v == neighbor]
+                    if j[0] not in visited:
+                        appends = path + j[0]
+                        queue.append(appends)
 
     def dfs(self, start):
 
@@ -336,30 +390,35 @@ class ExampleApp(tk.Tk):
         # if(returnV):
         #     self.Iterative_deepening_preparation()
 
-    def Iterative_DFS(self, start):
+    def Iterative_DFS(self, start, goal):
 
-        global nodes_no, visited, dfs_counter, temp_matrix, visited_nodes, nodes, returnV
-        print("H")
+        global nodes_no, visited, dfs_counter, temp_matrix, visited_nodes, nodes, returnV, flag_continue_dfs, temp_visited_nodes_indices
         if dfs_counter == 0:
             visited_nodes.append(nodes[start].pos)
+            temp_visited_nodes_indices.append(start)
+
+
             dfs_counter = 1
 
         visited[start] = True
+        if start == goal:
+            flag_continue_dfs=False
+            return
 
         for i in range(nodes_no):
             if temp_matrix[start][i] == 1 and (visited[i] is False):
-                print(i)
                 visited_nodes.append(nodes[i].pos)
-                self.Iterative_DFS(i)
+                temp_visited_nodes_indices.append(i)
+                self.Iterative_DFS(i, goal=self.goal_node_index)
+
 
         return True
 
     def perform_steps(self):
-        global returnV, visited, dfs_counter
+        global returnV, visited, dfs_counter, flag_continue_dfs, start, temp_expanded, temp_visited_nodes_indices
         self.Iterative_deepening_preparation(start=start)
-        self.Iterative_DFS(start)
-        print(temp_matrix)
-        print(visited_nodes)
+        self.Iterative_DFS(start, goal=self.goal_node_index)
+        print (temp_visited_nodes_indices)
         for i in range(len(visited_nodes)):
             point = visited_nodes[i]
 
@@ -375,15 +434,20 @@ class ExampleApp(tk.Tk):
             self.canvas.update_idletasks()
 
         time.sleep(ANIMATION_DELAY)
+        self.rect = self.canvas.create_oval(point[0], point[1], point[0] + 15, point[1] + 15, fill="Black")
         for i in range(len(visited_nodes)):
-
             point = visited_nodes[i]
             self.rect = self.canvas.create_oval(point[0], point[1], point[0] + 15, point[1] + 15, fill="Black")
+
+
+
 
         for i in range(nodes_no):
             visited[i] = False
         visited_nodes.clear()
         dfs_counter = 0
+        if (flag_continue_dfs):
+            self.perform_steps()
 
     def uniform_cost(self):
         global visited_nodes
@@ -475,7 +539,7 @@ class ExampleApp(tk.Tk):
 
     def traverse_graph(self):
 
-        global visited_nodes, selected_search_algorithm, start, returnV
+        global visited_nodes, selected_search_algorithm, start, returnV, temp_visited_nodes_indices, matrix
 
         solution_path = None
         expanded = None
@@ -490,19 +554,36 @@ class ExampleApp(tk.Tk):
             solution_path, expanded = self.dfs_matrix(start=start, goal=self.goal_node_index, path=[], expanded=[])
 
         elif selected_search_algorithm.get() == 'BFS':
-            solution_path, expanded = self.bfs(start=start)
+            solution_path, expanded = self.bfs(start=start, goal=self.goal_node_index, path=[] ,expanded = [])
         elif selected_search_algorithm.get() == 'Iterative Deepening':
             # if (returnV):
             self.perform_steps()
-            # solution_path, expanded = self.dfs_matrix(start=start, goal=self.goal_node_index, path=[], expanded=[])
+            solution_path, expanded = self.dfs_matrix(start=start, goal=self.goal_node_index, path=[], expanded=[])
+            expanded.clear()
+            for i in range(len(temp_visited_nodes_indices)):
+                if (temp_visited_nodes_indices[i]== self.goal_node_index):
+                    expanded.append(chr(ord('A')+temp_visited_nodes_indices[i]))
+                    break
+                else:
+                    expanded.append(chr(ord('A') + temp_visited_nodes_indices[i]))
+
         elif selected_search_algorithm.get() == 'Uniform Cost':
             solution_path, expanded = self.uniform_cost()
         elif selected_search_algorithm.get() == 'Greedy':
             solution_path, expanded = self.greedy()
         elif selected_search_algorithm.get() == 'A*':
-            solution_path, expanded = self.astar()
+            AdjList = convert(matrix)
+            print("Adjacency List:")
+            # print the adjacency list
+            for i in AdjList:
+                print(i, end="")
+                for j in AdjList[i]:
+                    print(" -> {}".format(j), end="")
+                print()
 
-        print(visited_nodes)
+            solution_path, expanded = self.astar(start=start, goal=self.goal_node_index, AdjList= AdjList)
+
+
         for i in range(len(visited_nodes)):
             point = visited_nodes[i]
 
