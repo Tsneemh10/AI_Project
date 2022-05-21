@@ -3,10 +3,10 @@ import tkinter as tk
 from tkinter import *
 from tkinter import ttk, messagebox
 # this is in python 3.4. For python 2.x import Tkinter
-from PIL import Image, ImageTk
 from queue import PriorityQueue
 
 draw_nodes = True
+draw_nodes_flag = True
 
 # Constants
 HEIGHT = 800
@@ -52,7 +52,7 @@ graph_type = ''
 iteration_counter = 0
 returnV = True
 selected_search_algorithm = ''
-search_algorithms = ('BFS', 'DFS', 'Iterative Deepening', 'Depth Limited', 'Uniform Cost', 'Greedy', 'A*')
+search_algorithms = ('BFS', 'DFS', 'Iterative Deepening', 'Uniform Cost', 'Greedy', 'A*')
 
 
 class Point:
@@ -64,13 +64,15 @@ class Point:
 
 
 def stop_nodes():
-    global draw_nodes, matrix, nodes_no, visited, temp_matrix
+    global draw_nodes, matrix, nodes_no, visited, temp_matrix, draw_nodes_flag
     draw_nodes = False
-    matrix = [[0 for i in range(nodes_no)]
-              for j in range(nodes_no)]
-    temp_matrix = [[0 for i in range(nodes_no)]
-              for j in range(nodes_no)]
-    visited = [False] * nodes_no
+    if draw_nodes_flag:
+        matrix = [[0 for i in range(nodes_no)]
+                  for j in range(nodes_no)]
+        temp_matrix = [[0 for i in range(nodes_no)]
+                  for j in range(nodes_no)]
+        visited = [False] * nodes_no
+        draw_nodes_flag = False
 
 
 class ExampleApp(tk.Tk):
@@ -137,6 +139,8 @@ class ExampleApp(tk.Tk):
 
         tk.Button(frame_2, text="Traverse graph", command=self.traverse_graph).grid(row=11, column=0)
 
+        tk.Button(frame_2, text="Reset graph", command=self.reset_graph).grid(row=12, column=0)
+
         self.rect = None
         self.center = [0, 0]
 
@@ -158,28 +162,34 @@ class ExampleApp(tk.Tk):
         #
 
         if draw_nodes:
+            node_flag = True
+            for j in range(len(nodes)):
+                if ((event.x >= nodes[j].pos[0]) and (event.y >= nodes[j].pos[1])) and ((event.x <= nodes[j].pos[0]+15) and (event.y <= nodes[j].pos[1]+15)):
+                    node_flag = False
+                    break
 
-            self.rect = self.canvas.create_oval(self.center[0], self.center[1], oval_lower[0],
-                                                oval_lower[1], fill="Black")
-            self.rect = self.canvas.create_text(self.center[0], self.center[1] - 5, text=chr(ord("A") + i),
-                                                fill="Blue", font='Helvetica 15')
+            if node_flag:
+                self.rect = self.canvas.create_oval(self.center[0], self.center[1], oval_lower[0],
+                                                    oval_lower[1], fill="Black")
+                self.rect = self.canvas.create_text(self.center[0], self.center[1] - 5, text=chr(ord("A") + i),
+                                                    fill="Blue", font='Helvetica 15')
 
-            nodes.append(Point([event.x, event.y], chr(ord("A") + i)))
-            i = i + 1
-            nodes_no += 1
+                nodes.append(Point([event.x, event.y], chr(ord("A") + i)))
+                i = i + 1
+                nodes_no += 1
 
         else:
 
-            for i in range (len(nodes)):
-                if ( ( (event.x >= nodes[i].pos[0]) and (event.y >= nodes[i].pos[1]) ) and ( (event.x <= nodes[i].pos[0]+15) and (event.y <= nodes[i].pos[1]+15)) ):
+            for i in range(len(nodes)):
+                if ((event.x >= nodes[i].pos[0]) and (event.y >= nodes[i].pos[1])) and ((event.x <= nodes[i].pos[0]+15) and (event.y <= nodes[i].pos[1]+15)):
                     if click == 0:
-                        pos1 = [(nodes[i].pos[0]+nodes[i].pos[0]+15)/2, (nodes[i].pos[1]+nodes[i].pos[1]+15)/2 ]
+                        pos1 = [(nodes[i].pos[0]+nodes[i].pos[0]+15)/2, (nodes[i].pos[1]+nodes[i].pos[1]+15)/2]
                         click = 1
                         index1 = i
                         break
 
                     if click == 1:
-                        pos2 = [(nodes[i].pos[0]+nodes[i].pos[0]+15)/2, (nodes[i].pos[1]+nodes[i].pos[1]+15)/2 ]
+                        pos2 = [(nodes[i].pos[0]+nodes[i].pos[0]+15)/2, (nodes[i].pos[1]+nodes[i].pos[1]+15)/2]
                         click = 2
                         index2 = i
                         break
@@ -195,15 +205,27 @@ class ExampleApp(tk.Tk):
                     matrix[index1][index2] = 1
                     # matrix[index2][index1] = 1
 
+    def reset_graph(self):
+        global draw_nodes, nodes, visited_nodes, nodes_no, i, index1, index2, draw_nodes_flag
+
+        self.canvas.delete('all')
+
+        draw_nodes = draw_nodes_flag = True
+        nodes_no = i = index1 = index2 = 0
+        nodes.clear()
+        visited_nodes.clear()
+
     def bfs(self, start):
 
         global nodes_no, visited, matrix, visited_nodes, nodes
         visited = [False] * nodes_no
         q = [start]
+        expanded = []
 
         # Set source as visited
         visited[start] = True
         visited_nodes.append(nodes[start].pos)
+        expanded.append(nodes[start].label)
 
         while q:
             vis = q[0]
@@ -221,11 +243,12 @@ class ExampleApp(tk.Tk):
                     # in the queue
                     q.append(i)
                     visited_nodes.append(nodes[i].pos)
+                    expanded.append(nodes[i].label)
                     # set
                     visited[i] = True
+        return 'A', expanded  # TODO wrong output
 
-
-    def DFS(self, start):
+    def dfs(self, start):
 
         global nodes_no, visited, dfs_counter, matrix, visited_nodes, nodes
 
@@ -236,9 +259,35 @@ class ExampleApp(tk.Tk):
         visited[start] = True
 
         for i in range(nodes_no):
-            if matrix[start][i] == 1 and (visited[i] == False):
+            if matrix[start][i] == 1 and (visited[i] is False):
                 visited_nodes.append(nodes[i].pos)
-                self.DFS(i)
+                self.dfs(i)
+
+    def dfs_matrix(self, start, goal, path, expanded=[]):
+        global nodes_no, visited, dfs_counter, matrix, visited_nodes, nodes
+
+        if dfs_counter == 0:
+            dfs_counter = 1
+            visited_nodes.append(nodes[start].pos)
+
+        if start not in path:
+            path = path + [start]
+
+        if start not in expanded:
+            expanded.append(start)
+            visited_nodes.append(nodes[start].pos)
+
+        if start == goal:
+            temp_string = str('')
+            for x in path:
+                temp_string = temp_string + chr(ord('A') + x)
+            return temp_string, [chr(ord('A') + x) for x in expanded]
+
+        for neighbor in range(len(matrix[start])):
+            if neighbor not in expanded and matrix[start][neighbor] == 1:
+                output = self.dfs_matrix(neighbor, goal, path, expanded)
+                if output is not None:
+                    return output
 
     def Iterative_deepening_preparation(self, start):
 
@@ -287,9 +336,6 @@ class ExampleApp(tk.Tk):
         # if(returnV):
         #     self.Iterative_deepening_preparation()
 
-
-
-
     def Iterative_DFS(self, start):
 
         global nodes_no, visited, dfs_counter, temp_matrix, visited_nodes, nodes, returnV
@@ -301,7 +347,7 @@ class ExampleApp(tk.Tk):
         visited[start] = True
 
         for i in range(nodes_no):
-            if temp_matrix[start][i] == 1 and (visited[i] == False):
+            if temp_matrix[start][i] == 1 and (visited[i] is False):
                 print(i)
                 visited_nodes.append(nodes[i].pos)
                 self.Iterative_DFS(i)
@@ -313,7 +359,7 @@ class ExampleApp(tk.Tk):
         self.Iterative_deepening_preparation(start=start)
         self.Iterative_DFS(start)
         print(temp_matrix)
-        print (visited_nodes)
+        print(visited_nodes)
         for i in range(len(visited_nodes)):
             point = visited_nodes[i]
 
@@ -348,8 +394,8 @@ class ExampleApp(tk.Tk):
         queue.put((0, self.start_node.get()))
 
         while queue:
-            cost, node = queue.get()
-            current = node[-1]
+            cost, solution_path = queue.get()
+            current = solution_path[-1]
             temp_row = ord(current) - ord('@') - 1
             if current not in visited:
                 visited.add(current)
@@ -357,8 +403,7 @@ class ExampleApp(tk.Tk):
                 visited_nodes.append(nodes[temp_row].pos)
 
                 if current == self.goal_node.get():
-                    print("goal reached: ", node, "expanded list: ", expanded)
-                    return node, expanded
+                    return solution_path, expanded
 
             length = len(matrix[temp_row])
 
@@ -367,7 +412,7 @@ class ExampleApp(tk.Tk):
                     j = chr(neighbor + ord('A'))
                     if j not in visited:
                         total_cost = cost + matrix[temp_row][neighbor]
-                        queue.put((total_cost, node + j))
+                        queue.put((total_cost, solution_path + j))
 
     def greedy(self):
         global visited_nodes, nodes
@@ -378,8 +423,8 @@ class ExampleApp(tk.Tk):
         queue.put((0, self.start_node.get()))
 
         while queue:
-            cost, node = queue.get()
-            current = node[-1]
+            cost, solution_path = queue.get()
+            current = solution_path[-1]
             temp_row = ord(current) - ord('@') - 1
             if current not in visited:
                 visited.add(current)
@@ -387,24 +432,53 @@ class ExampleApp(tk.Tk):
                 visited_nodes.append(nodes[temp_row].pos)
 
                 if current == self.goal_node.get():
-                    print("goal reached: ", node, "expanded list: ", expanded)
-                    return node, expanded
+                    return solution_path, expanded
 
                 length = len(matrix[temp_row])
 
                 for neighbor in range(length):
-                    if neighbor not in visited and matrix[temp_row][neighbor] > 0: #TODO review not in visited condition
+                    if neighbor not in visited and matrix[temp_row][neighbor] > 0:  # TODO review not in visited condition
                         j = chr(neighbor + ord('A'))
                         print(j in visited)
                         temp_list = [x.heuristic_weight for x in nodes if x.label == j]
                         print('temp_list: ', temp_list)
                         print('expected:', temp_list[0], 'actual: ', nodes[neighbor].heuristic_weight)
                         total_cost = nodes[neighbor].heuristic_weight
-                        queue.put((total_cost, node + j))
+                        queue.put((total_cost, solution_path + j))
+
+    def astar(self):
+        visited = []
+        path = []
+        prev = {}
+        queue = PriorityQueue()
+        queue.put((0, self.start_node.get(), None))
+        h2 = 0
+
+        while queue:
+            cost, node, prev_n = queue.get()
+            if node not in visited:
+                visited.append(node)
+                prev[node] = prev_n
+
+                if node == self.goal_node.get():
+                    while prev[node] != None:
+                        path += [node]
+                        node = prev[node]
+                    path += [start]
+                    return visited, prev, path[::-1]
+                for k, c in matrix[node]:
+                    if k not in visited:
+                        total_cost = cost + c
+                        h1 = heuristic[k]
+                        total = total_cost + h1 - heuristic[node]
+                        queue.put((total, k, node))
 
     def traverse_graph(self):
 
         global visited_nodes, selected_search_algorithm, start, returnV
+
+        solution_path = None
+        expanded = None
 
         if len(self.start_node.get()) != 0:
             start = ord(self.start_node.get()) - ord('@') - 1
@@ -412,20 +486,23 @@ class ExampleApp(tk.Tk):
             self.goal_coords = nodes[self.goal_node_index].pos
 
         if selected_search_algorithm.get() == 'DFS':
-            self.DFS(start=start),
+            # self.dfs(start=start)
+            solution_path, expanded = self.dfs_matrix(start=start, goal=self.goal_node_index, path=[], expanded=[])
 
         elif selected_search_algorithm.get() == 'BFS':
-            self.bfs(start=start),
+            solution_path, expanded = self.bfs(start=start)
         elif selected_search_algorithm.get() == 'Iterative Deepening':
             # if (returnV):
-            self.perform_steps(),
+            self.perform_steps()
+            # solution_path, expanded = self.dfs_matrix(start=start, goal=self.goal_node_index, path=[], expanded=[])
         elif selected_search_algorithm.get() == 'Uniform Cost':
-            self.uniform_cost()
+            solution_path, expanded = self.uniform_cost()
         elif selected_search_algorithm.get() == 'Greedy':
-            self.greedy()
+            solution_path, expanded = self.greedy()
+        elif selected_search_algorithm.get() == 'A*':
+            solution_path, expanded = self.astar()
 
-
-        print (visited_nodes)
+        print(visited_nodes)
         for i in range(len(visited_nodes)):
             point = visited_nodes[i]
 
@@ -433,6 +510,17 @@ class ExampleApp(tk.Tk):
                 time.sleep(ANIMATION_DELAY)
                 self.rect = self.canvas.create_oval(point[0], point[1], point[0] + 15, point[1] + 15, fill="Green")
                 returnV = False
+
+                temp = str('')
+
+                for j in range(len(expanded)):
+                    if j == len(expanded) - 1:
+                        temp = temp + expanded[j]
+                        break
+                    temp = temp + expanded[j] + ' -> '
+
+                temp_2 = 'Solution Path: ' + solution_path + '\n\n' + 'Visited Nodes: ' + temp
+                messagebox.showinfo("Solution Path & Visited Nodes", temp_2)
                 return
 
             # point1 = [ (point[0] + (point[0]+15))/2, (point[1] + (point[1]+15))/2]
@@ -505,9 +593,6 @@ class ExampleApp(tk.Tk):
         start = ord(temp[0]) - ord('A')
         end = ord(temp[1]) - ord('A')
 
-        for j in matrix:
-            print(j)
-
         if graph_type.get() == "Undirected":
             matrix[start][end] = weight
             matrix[end][start] = weight
@@ -520,9 +605,6 @@ class ExampleApp(tk.Tk):
         point = ((pos_1[0] + pos_2[0]) / 2, (pos_1[1] + pos_2[1]) / 2)
         self.canvas.create_text(point[0], point[1] - 5, text=weight,
                                 fill="Blue", font='Helvetica 15')
-
-        for j in matrix:
-            print(j)
 
     def node_heuristic_canvas(self):
         global nodes_no
@@ -562,7 +644,6 @@ class ExampleApp(tk.Tk):
         for j in nodes:
             print(j.label, ' ', j.heuristic_weight)
 
-
     def on_button_release(self, event):
         pass
 
@@ -570,8 +651,3 @@ class ExampleApp(tk.Tk):
 if __name__ == "__main__":
     app = ExampleApp()
     app.mainloop()
-
-
-
-
-
