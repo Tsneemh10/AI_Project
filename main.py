@@ -53,9 +53,10 @@ iteration_counter = 0
 returnV = True
 selected_search_algorithm = ''
 search_algorithms = ('BFS', 'DFS', 'Iterative Deepening', 'Uniform Cost', 'Greedy', 'A*')
-flag_continue_dfs= True
-temp_expanded=[]
-temp_visited_nodes_indices=[]
+flag_continue_dfs = True
+temp_expanded = []
+temp_visited_nodes_indices = []
+goal_nodes_list = []
 
 
 class Point:
@@ -63,14 +64,13 @@ class Point:
         self.pos = pos
         self.index = 0
         self.label = label
-        self.heuristic_weight = 0
-
+        self.heuristic_weight = -1
 
 
 def increase_animation():
-
     global ANIMATION_DELAY
-    ANIMATION_DELAY= ANIMATION_DELAY+0.2
+    if ANIMATION_DELAY <= 3:
+        ANIMATION_DELAY = ANIMATION_DELAY + 0.2
     print(ANIMATION_DELAY)
 
 
@@ -78,10 +78,8 @@ def decrease_animation():
     global ANIMATION_DELAY
     print(ANIMATION_DELAY)
 
-    if ( ANIMATION_DELAY>= 0.3 ):
+    if ANIMATION_DELAY >= 0.3:
         ANIMATION_DELAY = ANIMATION_DELAY - 0.2
-
-
 
 
 def stop_nodes():
@@ -94,6 +92,21 @@ def stop_nodes():
                   for j in range(nodes_no)]
         visited = [False] * nodes_no
         draw_nodes_flag = False
+
+
+def is_connected():
+    flag_all = 1
+    for i in range(len(matrix)):
+        flag_row = 0
+        for j in range(len(matrix)):
+            flag_row = flag_row or matrix[i][j]
+        flag_all = flag_all and flag_row
+    if flag_all >= 1:
+        return False
+
+    else:
+        messagebox.showwarning("Error", "Please draw a connected graph!!!")
+        return True
 
 
 def convert(matrix_1):
@@ -140,43 +153,49 @@ class ExampleApp(tk.Tk):
 
         Label(frame_2, text='Enter the goal node').grid(row=3, column=0)
 
-
-
         self.goal_node = Entry(frame_2, width=12)
         self.goal_node.focus_set()
         self.goal_node.grid(row=3, column=1)
-        Label(frame_2, text='  ').grid(row=13, column=0)
-        Label(frame_2, text='Animation delay').grid(row=14, column=0)
 
-        Label(frame_2, text=' ').grid(row=4, column=0)  # spacer_2
+        Label(frame_2, text='Example for multiple goals: A-B-C').grid(row=4, column=0)
 
-        self.goal_node_index = 0
+        Label(frame_2, text=' ').grid(row=5, column=0)  # spacer_2
+
+        self.goal_node_index = []
 
         self.goal_coords = [0, 0]
 
-        ttk.Button(frame_2, text="Set Edge Weights", command=lambda: self.edge_weights_canvas()).grid(row=5, column=0)
-        ttk.Button(frame_2, text="Set Node Heuristic", command=lambda: self.node_heuristic_canvas()).grid(row=5, column=1)
-        ttk.Button(frame_2, text="+", command=lambda: increase_animation()).grid(row=15, column=0)
-        ttk.Button(frame_2, text="-", command=lambda: decrease_animation()).grid(row=16, column=0)
+        ttk.Button(frame_2, text="Set Edge Weights", command=lambda: self.edge_weights_canvas()).grid(row=6, column=0)
+        ttk.Button(frame_2, text="Set Node Heuristic", command=lambda: self.node_heuristic_canvas()).grid(row=7, column=0)
 
-        Label(frame_2, text='Select the desired graph type').grid(row=6, column=0)
+
+        Label(frame_2, text='Select the desired graph type').grid(row=8, column=0)
 
         graph_type = StringVar()
         graph_type.set("Undirected")
 
-        tk.Radiobutton(frame_2, text="Undirected", variable=graph_type, value="Undirected").grid(row=7, column=0)
-        tk.Radiobutton(frame_2, text="Directed", variable=graph_type, value="Directed").grid(row=8, column=0)
+        tk.Radiobutton(frame_2, text="Undirected", variable=graph_type, value="Undirected").grid(row=9, column=0)
+        tk.Radiobutton(frame_2, text="Directed", variable=graph_type, value="Directed").grid(row=10, column=0)
 
-        Label(frame_2, text='Select the desired search algorithm').grid(row=9, column=0)
+        Label(frame_2, text='Select the desired search algorithm').grid(row=11, column=0)
 
         selected_search_algorithm = StringVar()
         selected_search_algorithm.set('BFS')
 
-        OptionMenu(frame_2, selected_search_algorithm, *search_algorithms).grid(row=10, column=0)
+        OptionMenu(frame_2, selected_search_algorithm, *search_algorithms).grid(row=12, column=0)
 
-        tk.Button(frame_2, text="Traverse graph", command=self.traverse_graph).grid(row=11, column=0)
+        Label(frame_2, text=' ').grid(row=13, column=0)  # spacer_3
 
-        tk.Button(frame_2, text="Reset graph", command=self.reset_graph).grid(row=12, column=0)
+        tk.Button(frame_2, text="Traverse graph", command=self.traverse_graph).grid(row=14, column=0)
+
+        Label(frame_2, text=' ').grid(row=15, column=0)  # spacer_4
+
+        tk.Button(frame_2, text="Reset graph", command=self.reset_graph).grid(row=16, column=0)
+
+        Label(frame_2, text='  ').grid(row=17, column=0)
+        Label(frame_2, text='Animation delay').grid(row=18, column=0)
+        ttk.Button(frame_2, text="+", command=lambda: increase_animation()).grid(row=19, column=0)
+        ttk.Button(frame_2, text="-", command=lambda: decrease_animation()).grid(row=20, column=0)
 
         self.rect = None
         self.center = [0, 0]
@@ -190,14 +209,6 @@ class ExampleApp(tk.Tk):
         self.center[1] = event.y
         oval_lower = [self.center[0] + 15, self.center[1] + 15]
 
-        # for node in nodes:
-        #     if ((event.x > node.pos[0] and event.x < node.pos[0] + 15) and (event.y > node.pos[1] and event.x < node.pos[1] + 15)):
-        #         draw_nodes= False
-        #         break
-        #     else:
-        #         draw_nodes= True
-        #
-
         if draw_nodes:
             node_flag = True
             for j in range(len(nodes)):
@@ -208,8 +219,8 @@ class ExampleApp(tk.Tk):
             if node_flag:
                 self.rect = self.canvas.create_oval(self.center[0], self.center[1], oval_lower[0],
                                                     oval_lower[1], fill="Black")
-                self.rect = self.canvas.create_text(self.center[0], self.center[1] - 5, text=chr(ord("A") + i),
-                                                    fill="Blue", font='Helvetica 15')
+                self.rect = self.canvas.create_text(self.center[0], self.center[1] - 10, text=chr(ord("A") + i),
+                                                    fill="Blue", font='Helvetica 25')
 
                 nodes.append(Point([event.x, event.y], chr(ord("A") + i)))
                 i = i + 1
@@ -235,10 +246,6 @@ class ExampleApp(tk.Tk):
                             click = 2
                             index2 = i
                             break
-
-
-
-
 
             if click == 2:
                 if graph_type.get() == "Undirected":
@@ -272,7 +279,8 @@ class ExampleApp(tk.Tk):
         iteration_counter = 0
         temp_expanded.clear()
         temp_visited_nodes_indices.clear()
-    def apply_another_algorithm (self):
+
+    def apply_another_algorithm(self):
 
         global visited_nodes, dfs_counter, temp_matrix, visited, flag_continue_dfs, iteration_counter
         print(visited_nodes)
@@ -281,8 +289,7 @@ class ExampleApp(tk.Tk):
             point = visited_nodes[i]
             self.rect = self.canvas.create_oval(point[0], point[1], point[0] + 15, point[1] + 15, fill="Black")
             self.canvas.update_idletasks()
-        time.sleep(ANIMATION_DELAY)
-        time.sleep(ANIMATION_DELAY)
+        time.sleep(1)
 
         visited_nodes.clear()
         dfs_counter = 0
@@ -295,46 +302,8 @@ class ExampleApp(tk.Tk):
         temp_expanded.clear()
         temp_visited_nodes_indices.clear()
 
-
-    def bfs(self, start, goal, path=[], expanded=[]):
-
-
-        global nodes_no, matrix, visited_nodes, nodes
-
-        queue = [start]
-
-
-        # Set source as visited
-        visited[start] = True
-        visited_nodes.append(nodes[start].pos)
-        expanded.append(nodes[start].label)
-
-        while queue:
-
-            path.append (queue.pop(0))
-            current = path[-1]
-            if current not in expanded:
-                expanded.append(path[-1])
-            if current not in visited:
-                visited.add(current)
-            if current == goal:
-                return path, expanded
-
-            # Print current node
-           # print(vis, end=' ')
-
-            # For every adjacent vertex to
-            # the current vertex
-            length = len(matrix[current])
-            for neighbor in range(length):
-                if neighbor not in visited and matrix[current][neighbor] == 1:
-                    j = [k for k, v in nodes if v == neighbor]
-                    if j[0] not in visited:
-                        appends = path + j[0]
-                        queue.append(appends)
-
     def bfs_matrix(self):
-        global visited_nodes
+        global visited_nodes, goal_nodes_list
         visited = set()
         expanded = []
         queue = [self.start_node.get()]
@@ -352,32 +321,17 @@ class ExampleApp(tk.Tk):
             if current not in visited:
                 visited.add(current)
 
-            if current == self.goal_node.get():
+            if current in goal_nodes_list:
                 print('path: ', path, 'expanded: ', expanded)
                 return path, expanded
 
             length = len(matrix[temp_row])
             for neighbor in range(length):
-                if neighbor not in visited and matrix[temp_row][neighbor] == 1:
+                if neighbor not in visited and matrix[temp_row][neighbor] > 0:
                     j = chr(neighbor + ord('A'))
                     if j not in visited:
                         appends = path + j[0]
                         queue.append(appends)
-
-    def dfs(self, start):
-
-        global nodes_no, visited, dfs_counter, matrix, visited_nodes, nodes
-
-        if dfs_counter == 0:
-            dfs_counter = 1
-            visited_nodes.append(nodes[start].pos)
-
-        visited[start] = True
-
-        for i in range(nodes_no):
-            if matrix[start][i] == 1 and (visited[i] is False):
-                visited_nodes.append(nodes[i].pos)
-                self.dfs(i)
 
     def dfs_matrix(self, start, goal, path, expanded=[]):
         global nodes_no, visited, dfs_counter, matrix, visited_nodes, nodes
@@ -393,14 +347,14 @@ class ExampleApp(tk.Tk):
             expanded.append(start)
             visited_nodes.append(nodes[start].pos)
 
-        if start == goal:
+        if start in goal:
             temp_string = str('')
             for x in path:
                 temp_string = temp_string + chr(ord('A') + x)
             return temp_string, [chr(ord('A') + x) for x in expanded]
 
         for neighbor in range(len(matrix[start])):
-            if neighbor not in expanded and matrix[start][neighbor] == 1:
+            if neighbor not in expanded and matrix[start][neighbor] > 0:
                 output = self.dfs_matrix(neighbor, goal, path, expanded)
                 if output is not None:
                     return output
@@ -422,57 +376,37 @@ class ExampleApp(tk.Tk):
             if iteration_counter == 1:
                 for i in range(nodes_no):
                     temp_matrix[start][i] = matrix[start][i]
-                    if temp_matrix[start][i] == 1:
+                    if temp_matrix[start][i] > 0:
                         Iterations_vertices.append(i)
 
             else:
                 for i in range(len(Iterations_vertices)):
                     for j in range(nodes_no):
                         temp_matrix[Iterations_vertices[i]][j] = matrix[Iterations_vertices[i]][j]
-                        if temp_matrix[Iterations_vertices[i]][j] == 1:
+                        if temp_matrix[Iterations_vertices[i]][j] > 0:
                             Iterations_vertices.append(j)
 
         iteration_counter += 1
-        # self.Iterative_DFS(start)
-        # for i in range(len(visited_nodes)):
-        #     point = visited_nodes[i]
-        #     self.rect = self.canvas.create_oval(point[0], point[1], point[0] + 15, point[1] + 15, fill="Black")
-
-
-
-        # if(iteration_counter!=0):
-        #     if (returnV):
-                # for i in range(len(visited_nodes)):
-                #     point = visited_nodes[i]
-                #     self.rect = self.canvas.create_oval(point[0], point[1], point[0] + 15, point[1] + 15, fill="Black")
-                #     time.sleep(ANIMATION_DELAY)
-                #     self.canvas.update_idletasks()
-                #self.traverse_graph()
-
-        # if(returnV):
-        #     self.Iterative_deepening_preparation()
 
     def Iterative_DFS(self, start, goal):
-
         global nodes_no, visited, dfs_counter, temp_matrix, visited_nodes, nodes, returnV, flag_continue_dfs, temp_visited_nodes_indices
+
         if dfs_counter == 0:
             visited_nodes.append(nodes[start].pos)
             temp_visited_nodes_indices.append(start)
 
-
             dfs_counter = 1
 
         visited[start] = True
-        if start == goal:
-            flag_continue_dfs=False
+        if start in goal:
+            flag_continue_dfs = False
             return
 
         for i in range(nodes_no):
-            if temp_matrix[start][i] == 1 and (visited[i] is False):
+            if temp_matrix[start][i] > 0 and (visited[i] is False):
                 visited_nodes.append(nodes[i].pos)
                 temp_visited_nodes_indices.append(i)
                 self.Iterative_DFS(i, goal=self.goal_node_index)
-
 
         return True
 
@@ -484,7 +418,7 @@ class ExampleApp(tk.Tk):
         for i in range(len(visited_nodes)):
             point = visited_nodes[i]
 
-            if point == self.goal_coords:
+            if point in self.goal_coords:
                 time.sleep(ANIMATION_DELAY)
                 self.rect = self.canvas.create_oval(point[0], point[1], point[0] + 15, point[1] + 15, fill="Green")
                 # returnV = False
@@ -501,19 +435,15 @@ class ExampleApp(tk.Tk):
             point = visited_nodes[i]
             self.rect = self.canvas.create_oval(point[0], point[1], point[0] + 15, point[1] + 15, fill="Black")
 
-
-
-
-
         for i in range(nodes_no):
             visited[i] = False
         visited_nodes.clear()
         dfs_counter = 0
-        if (flag_continue_dfs):
+        if flag_continue_dfs:
             self.perform_steps()
 
     def uniform_cost(self):
-        global visited_nodes
+        global visited_nodes, goal_nodes_list
 
         visited = set()
         expanded = []
@@ -529,7 +459,7 @@ class ExampleApp(tk.Tk):
                 expanded.append(current)
                 visited_nodes.append(nodes[temp_row].pos)
 
-                if current == self.goal_node.get():
+                if current in goal_nodes_list:
                     return solution_path, expanded
 
             length = len(matrix[temp_row])
@@ -542,7 +472,7 @@ class ExampleApp(tk.Tk):
                         queue.put((total_cost, solution_path + j))
 
     def greedy(self):
-        global visited_nodes, nodes
+        global visited_nodes, nodes, goal_nodes_list
 
         visited = set()
         expanded = []
@@ -558,7 +488,7 @@ class ExampleApp(tk.Tk):
                 expanded.append(current)
                 visited_nodes.append(nodes[temp_row].pos)
 
-                if current == self.goal_node.get():
+                if current in goal_nodes_list:
                     return solution_path, expanded
 
                 length = len(matrix[temp_row])
@@ -572,7 +502,6 @@ class ExampleApp(tk.Tk):
                         print('expected:', temp_list[0], 'actual: ', nodes[neighbor].heuristic_weight)
                         total_cost = nodes[neighbor].heuristic_weight
                         queue.put((total_cost, solution_path + j))
-
 
     def astar(self, graph, start, goal):
         global nodes, visited_nodes
@@ -590,7 +519,7 @@ class ExampleApp(tk.Tk):
                 visited_nodes.append(nodes[ord(node) - ord('@') - 1].pos)
                 prev[node] = prev_n
 
-                if node == goal:
+                if node in goal:
                     while prev[node] is not None:
                         path += [node]
                         node = prev[node]
@@ -607,36 +536,56 @@ class ExampleApp(tk.Tk):
                         total = total_cost + h1 - nodes[ord(node) - ord('@') - 1].heuristic_weight
                         queue.put((total, i, node))
 
+    def check_heuristic_weight(self):
+        global nodes
+        for j in nodes:
+            if j.heuristic_weight < 0:
+                messagebox.showwarning("Error", "Some Nodes have a wrong heuristic value")
+                return False
+        return True
+
     def traverse_graph(self):
 
-        global visited_nodes, selected_search_algorithm, start, returnV, temp_visited_nodes_indices, matrix
+        global visited_nodes, selected_search_algorithm, start, returnV, temp_visited_nodes_indices, matrix, goal_nodes_list
 
         solution_path = None
         expanded = None
 
-        if ( (len(self.start_node.get())==0)   ):
+        if graph_type == 'Undirected':
+            returnV = is_connected()
+            if returnV:
+                return
+
+        if len(self.start_node.get()) == 0 or len(self.goal_node.get()) == 0:
             messagebox.showwarning("Error", "Please make sure that you entered the start and the goal nodes!!!")
             return
 
+        goal_nodes_list = self.goal_node.get().split('-')
+
         if len(self.start_node.get()) != 0:
             start = ord(self.start_node.get()) - ord('@') - 1
-            flag1= True
-            flag2= True
+            flag1 = flag2 = True
+
             for i in range(len(nodes)):
-                if self.start_node.get()== nodes[i].label:
-                    flag1= False
-                if self.goal_node.get()== nodes[i].label:
-                    flag2= False
+                if self.start_node.get() == nodes[i].label:
+                    flag1 = False
+                    break
+
+            for j in range(len(goal_nodes_list)):
+                flag2 = True
+                for k in range(len(nodes)):
+                    if goal_nodes_list[j] == nodes[k].label:
+                        flag2 = False
+                        break
+
             print(flag1, flag2)
-            if (flag1 or flag2):
+            if flag1 or flag2:
                 messagebox.showwarning("Error", "Please make sure that your start and goal nodes are correct!!!")
                 return
 
+            self.goal_node_index = [ord(x) - ord('@') - 1 for x in goal_nodes_list]
 
-
-            self.goal_node_index = ord(self.goal_node.get()) - ord('@') - 1
-
-            self.goal_coords = nodes[self.goal_node_index].pos
+            self.goal_coords = [nodes[x].pos for x in self.goal_node_index]
 
         if selected_search_algorithm.get() == 'DFS':
             self.apply_another_algorithm()
@@ -653,7 +602,7 @@ class ExampleApp(tk.Tk):
             solution_path, expanded = self.dfs_matrix(start=start, goal=self.goal_node_index, path=[], expanded=[])
             expanded.clear()
             for i in range(len(temp_visited_nodes_indices)):
-                if (temp_visited_nodes_indices[i]== self.goal_node_index):
+                if temp_visited_nodes_indices[i] in self.goal_node_index:
                     expanded.append(chr(ord('A')+temp_visited_nodes_indices[i]))
                     break
                 else:
@@ -663,26 +612,21 @@ class ExampleApp(tk.Tk):
             self.apply_another_algorithm()
             solution_path, expanded = self.uniform_cost()
         elif selected_search_algorithm.get() == 'Greedy':
+            if not self.check_heuristic_weight():
+                return
             self.apply_another_algorithm()
             solution_path, expanded = self.greedy()
         elif selected_search_algorithm.get() == 'A*':
+            if not self.check_heuristic_weight():
+                return
             self.apply_another_algorithm()
             AdjList = convert(matrix)
-            solution_path, expanded = self.astar(graph=AdjList, start=self.start_node.get(), goal=self.goal_node.get())
-            print("Adjacency List:")
-            # for i in AdjList:
-            #     print(i, end="")
-            #     for j in AdjList[i]:
-            #         print(" -> {}".format(j), end="")
-            #     print()
-            for j in AdjList:
-                for k in AdjList[j]:
-                    print(j, k)
+            solution_path, expanded = self.astar(graph=AdjList, start=self.start_node.get(), goal=goal_nodes_list)
 
         for i in range(len(visited_nodes)):
             point = visited_nodes[i]
 
-            if point == self.goal_coords:
+            if point in self.goal_coords:
                 time.sleep(ANIMATION_DELAY)
                 self.rect = self.canvas.create_oval(point[0], point[1], point[0] + 15, point[1] + 15, fill="Green")
                 returnV = False
@@ -699,27 +643,9 @@ class ExampleApp(tk.Tk):
                 messagebox.showinfo("Solution Path & Visited Nodes", temp_2)
                 return
 
-            # point1 = [ (point[0] + (point[0]+15))/2, (point[1] + (point[1]+15))/2]
             self.rect = self.canvas.create_oval(point[0], point[1], point[0] + 15, point[1] + 15, fill="Red")
             time.sleep(ANIMATION_DELAY)
             self.canvas.update_idletasks()
-
-
-            # max = len(visited_nodes)
-
-            # if i != max-1:
-            #     point2_temp = visited_nodes[i + 1]
-            #     point2 = [(point2_temp[0] + point2_temp[0] + 15) / 2, (point2_temp[1] + point2_temp[1] + 15) / 2]
-            #     self.canvas.create_line(point1[0], point1[1], point2[0], point2[1], fill="red", width=2)
-            #     time.sleep(0.5)
-            #     self.canvas.update_idletasks()
-
-
-            # if nodes:
-            #     for p, location in enumerate(nodes):
-            #         if (self.oval_upper[0]  >= nodes[p].oval_lower[0]   and self.oval_upper[1]  >= nodes[p].oval_lower[1] and
-            #             self.oval_upper[0] >= nodes[p].oval_lower[0] and self.oval_upper[1] >= nodes[p].oval_lower[1]  ) or (self.oval_lower)
-
 
     def edge_weights_canvas(self):
 
@@ -747,17 +673,24 @@ class ExampleApp(tk.Tk):
             return
 
         window = tk.Toplevel()
-        canvas = tk.Canvas(window, height=200, width=200)
-        canvas.pack()
+        frame = Frame(window)
 
         edge = StringVar()
         edge.set(edges[0])
 
-        OptionMenu(canvas, edge, *edges).pack()
-        Label(canvas, text='Input the desired Weight').pack()
-        weight = Text(canvas, width=10, height=10)
-        weight.pack()
-        ttk.Button(canvas, text="Submit", command=lambda: self.set_edge_weight(edge=edge.get(), weight=int(weight.get("1.0", "end-1c")))).pack()
+        OptionMenu(frame, edge, *edges).grid(row=0, column=0)
+
+        Label(frame, text='').grid(row=1, column=0)  # spacer_1
+
+        Label(frame, text='Input the desired Edge Weight').grid(row=2, column=0)
+        weight = Text(frame, width=15, height=1)
+        weight.grid(row=2, column=1)
+
+        Label(frame, text='').grid(row=3, column=0)  # spacer_2
+
+        ttk.Button(frame, text="Submit", command=lambda: self.set_edge_weight(edge=edge.get(), weight=int(weight.get("1.0", "end-1c")))).grid(row=4, column=0)
+
+        frame.pack()
 
     def set_edge_weight(self, edge, weight):
         if weight <= 0:
@@ -790,8 +723,7 @@ class ExampleApp(tk.Tk):
             return
 
         window = tk.Toplevel()
-        canvas = tk.Canvas(window, height=200, width=200)
-        canvas.pack()
+        frame = Frame(window)
 
         node_names = []
 
@@ -801,11 +733,18 @@ class ExampleApp(tk.Tk):
         node = StringVar()
         node.set(node_names[0])
 
-        OptionMenu(canvas, node, *node_names).pack()
-        Label(canvas, text='Input the desired Heuristic Weight').pack()
-        heuristic_weight = Text(canvas, width=10, height=10)
-        heuristic_weight.pack()
-        ttk.Button(canvas, text="Submit", command=lambda: self.set_node_heuristic_weight(node=node.get(), heuristic_weight=int(heuristic_weight.get("1.0", "end-1c")))).pack()
+        OptionMenu(frame, node, *node_names).grid(row=0, column=0)
+
+        Label(frame, text='').grid(row=1, column=0)  # spacer_1
+
+        Label(frame, text='Input the desired Heuristic Weight').grid(row=2, column=0)
+        heuristic_weight = Text(frame, width=15, height=1)
+        heuristic_weight.grid(row=2, column=1)
+
+        Label(frame, text='').grid(row=3, column=0)  # spacer_2
+
+        ttk.Button(frame, text="Submit", command=lambda: self.set_node_heuristic_weight(node=node.get(), heuristic_weight=int(heuristic_weight.get("1.0", "end-1c")))).grid(row=4, column=0)
+        frame.pack()
 
     def set_node_heuristic_weight(self, node, heuristic_weight):
         global nodes
